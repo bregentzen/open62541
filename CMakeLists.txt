@@ -62,7 +62,7 @@ MESSAGE(STATUS "open62541 Version: ${OPEN62541_VERSION}")
 # Architecture #
 ################
 
-set(UA_ARCHITECTURES "none" "posix" "win32")
+set(UA_ARCHITECTURES "none" "posix" "win32" "esp32")
 set(UA_ARCHITECTURE "" CACHE STRING "Architecture to build open62541 for")
 SET_PROPERTY(CACHE UA_ARCHITECTURE PROPERTY STRINGS "" ${UA_ARCHITECTURES})
 
@@ -81,6 +81,8 @@ if (NOT UA_ENABLE_AMALGAMATION OR (UA_ENABLE_AMALGAMATION AND NOT UA_AMALGAMATIO
         set(UA_ARCHITECTURE_POSIX 1)
     elseif("${UA_ARCHITECTURE}" STREQUAL "win32")
         set(UA_ARCHITECTURE_WIN32 1)
+    elseif("${UA_ARCHITECTURE}" STREQUAL "esp32")
+        set(UA_ARCHITECTURE_ESP32 1)
     endif()
 endif()
 
@@ -860,11 +862,6 @@ if(UA_GENERATED_NAMESPACE_ZERO)
     list(APPEND lib_sources ${PROJECT_BINARY_DIR}/src_generated/open62541/namespace0_generated.c)
 endif()
 
-if (NOT "${UA_ARCHITECTURE}" STREQUAL "none")
-    list(PREPEND lib_headers ${PROJECT_SOURCE_DIR}/arch/posix/ua_architecture.h)
-    list(PREPEND lib_headers ${PROJECT_SOURCE_DIR}/arch/win32/ua_architecture.h)
-endif()
-
 if(UA_ENABLE_PARSING)
     list(APPEND lib_sources ${PROJECT_SOURCE_DIR}/src/ua_types_lex.c)
 endif()
@@ -944,35 +941,46 @@ if(UA_BUILD_FUZZING OR UA_BUILD_OSS_FUZZ)
     list(APPEND lib_sources ${PROJECT_SOURCE_DIR}/tests/fuzz/custom_memory_manager.c)
 endif()
 
-# Architecture
 set(architecture_headers)
 set(architecture_sources)
 
-if(NOT "${UA_ARCHITECTURE}" STREQUAL "none")
+if("${UA_ARCHITECTURE}" STREQUAL "esp32")
     list(APPEND architecture_headers
-         ${PROJECT_SOURCE_DIR}/arch/common/ua_timer.h
-         ${PROJECT_SOURCE_DIR}/arch/eventloop_common.h
-         ${PROJECT_SOURCE_DIR}/arch/eventloop_posix.h)
+        ${PROJECT_SOURCE_DIR}/arch/esp32/ua_architecture.h
+        ${PROJECT_SOURCE_DIR}/arch/esp32/ua_eventloop_esp32.h
+        ${PROJECT_SOURCE_DIR}/arch/common/ua_timer.h)
 
     list(APPEND architecture_sources
-         ${PROJECT_SOURCE_DIR}/arch/posix/ua_clock.c
-         ${PROJECT_SOURCE_DIR}/arch/win32/ua_clock.c
-         ${PROJECT_SOURCE_DIR}/arch/common/ua_timer.c
-         ${PROJECT_SOURCE_DIR}/arch/eventloop_common.c
-         ${PROJECT_SOURCE_DIR}/arch/eventloop_posix.c
-         ${PROJECT_SOURCE_DIR}/arch/eventloop_posix_select.c
-         ${PROJECT_SOURCE_DIR}/arch/eventloop_posix_epoll.c
-         ${PROJECT_SOURCE_DIR}/arch/eventloop_posix_tcp.c
-         ${PROJECT_SOURCE_DIR}/arch/eventloop_posix_udp.c
-         ${PROJECT_SOURCE_DIR}/arch/eventloop_posix_interrupt.c)
+        ${PROJECT_SOURCE_DIR}/arch/esp32/ua_clock.c
+        ${PROJECT_SOURCE_DIR}/arch/common/ua_timer.c
+        ${PROJECT_SOURCE_DIR}/arch/esp32/ua_eventloop_esp32.c
+        ${PROJECT_SOURCE_DIR}/arch/esp32/ua_network_esp32.c)
 
-     if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR UA_ENABLE_AMALGAMATION)
+elseif("${UA_ARCHITECTURE}" STREQUAL "posix" OR "${UA_ARCHITECTURE}" STREQUAL "win32")
+    list(APPEND architecture_headers
+        ${PROJECT_SOURCE_DIR}/arch/common/ua_timer.h
+        ${PROJECT_SOURCE_DIR}/arch/eventloop_common.h
+        ${PROJECT_SOURCE_DIR}/arch/eventloop_posix.h)
+
+    list(APPEND architecture_sources
+        ${PROJECT_SOURCE_DIR}/arch/posix/ua_clock.c
+        ${PROJECT_SOURCE_DIR}/arch/win32/ua_clock.c
+        ${PROJECT_SOURCE_DIR}/arch/common/ua_timer.c
+        ${PROJECT_SOURCE_DIR}/arch/eventloop_common.c
+        ${PROJECT_SOURCE_DIR}/arch/eventloop_posix.c
+        ${PROJECT_SOURCE_DIR}/arch/eventloop_posix_select.c
+        ${PROJECT_SOURCE_DIR}/arch/eventloop_posix_epoll.c
+        ${PROJECT_SOURCE_DIR}/arch/eventloop_posix_tcp.c
+        ${PROJECT_SOURCE_DIR}/arch/eventloop_posix_udp.c
+        ${PROJECT_SOURCE_DIR}/arch/eventloop_posix_interrupt.c)
+
+    if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR UA_ENABLE_AMALGAMATION)
         list(APPEND architecture_sources ${PROJECT_SOURCE_DIR}/arch/eventloop_posix_eth.c)
     endif()
+endif()
 
-    if(UA_ENABLE_MQTT)
-        list(APPEND architecture_sources ${PROJECT_SOURCE_DIR}/arch/eventloop_mqtt.c)
-    endif()
+if(UA_ENABLE_MQTT)
+    list(APPEND architecture_sources ${PROJECT_SOURCE_DIR}/arch/eventloop_mqtt.c)
 endif()
 
 

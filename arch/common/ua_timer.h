@@ -64,6 +64,8 @@ typedef struct {
 void
 UA_Timer_init(UA_Timer *t);
 
+void UA_Timer_init(UA_Timer *t, UA_Logger logger, UA_Allocator allocator);
+
 UA_DateTime
 UA_Timer_nextRepeatedTime(UA_Timer *t);
 

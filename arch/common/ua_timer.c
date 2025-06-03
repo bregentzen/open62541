@@ -49,6 +49,17 @@ UA_Timer_init(UA_Timer *t) {
     UA_LOCK_INIT(&t->timerMutex);
 }
 
+void UA_Timer_init(UA_Timer *t, UA_Logger logger, UA_Allocator allocator);
+{
+    UA_Timer_init(t);
+    t->logger = logger;
+    t->allocator = allocator;
+    ZIP_INIT(UA_TimerTree, &t->tree);
+    ZIP_INIT(UA_TimerIdTree, &t->idTree);
+    t->idCounter = 0;
+    t->processTree.root = NULL; /* No entries to process */
+}
+
 /* Global variables, only used behind the mutex */
 static UA_DateTime earliest, latest, adjustedNextTime;
 
